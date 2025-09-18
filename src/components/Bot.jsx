@@ -15,7 +15,8 @@ const Bot = () => {
   const [welcomeText, setWelcomeText] = useState("");
   const [file, setFile] = useState(null);
   const [voiceMode, setVoiceMode] = useState(false);
-  const [copied, setCopied] = useState(null); // store copied code index
+  const [copied, setCopied] = useState(null);
+  const [recording, setRecording] = useState(false);
 
   const messagesEndRef = useRef(null);
 
@@ -62,6 +63,12 @@ const Bot = () => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     window.speechSynthesis.speak(utterance);
+  };
+
+  // Stop Speaking
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setRecording(false);
   };
 
   // Send message
@@ -125,6 +132,7 @@ const Bot = () => {
     } finally {
       setFile(null);
       setLoading(false);
+      setVoiceMode(false);
     }
   };
 
@@ -142,6 +150,7 @@ const Bot = () => {
       window.webkitSpeechRecognition)();
     recognition.lang = "en-US";
     recognition.start();
+    setRecording(true);
 
     recognition.onresult = (event) => {
       setInput(event.results[0][0].transcript);
@@ -150,11 +159,12 @@ const Bot = () => {
 
     recognition.onerror = (err) => {
       console.error("Speech recognition error:", err);
+      setRecording(false);
     };
-  };
 
-  const stopSpeaking = () => {
-    window.speechSynthesis.cancel();
+    recognition.onend = () => {
+      setRecording(false);
+    };
   };
 
   // Copy code to clipboard
@@ -317,9 +327,15 @@ const Bot = () => {
               📎
             </label>
 
+            {/* Mic button with recording state */}
             <button
               onClick={startListening}
-              className="flex items-center justify-center w-8 h-8 bg-gray-600 rounded-full hover:bg-gray-500 cursor-pointer"
+              className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-200 
+                ${
+                  recording
+                    ? "bg-red-600 animate-pulse"
+                    : "bg-gray-600 hover:bg-gray-500"
+                }`}
               title="Voice input"
             >
               🎤
@@ -335,7 +351,8 @@ const Bot = () => {
 
             <button
               onClick={sendMessage}
-              className="flex items-center justify-center w-8 h-8 bg-green-600 rounded-full hover:bg-green-700 cursor-pointer"
+              className="flex items-center justify-center w-8 h-8 bg-green-600 rounded-full hover:bg-green-700 cursor-pointer disabled:opacity-50"
+              disabled={loading}
               title="Send message"
             >
               ➤
